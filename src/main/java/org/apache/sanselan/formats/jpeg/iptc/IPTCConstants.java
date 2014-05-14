@@ -92,8 +92,11 @@ public interface IPTCConstants extends JpegConstants
 
 	// public static final int IPTC_RECORD_PREFIX = 0x1c02;
 	public static final int IPTC_RECORD_TAG_MARKER = 0x1c;
-	public static final int IPTC_ENVELOPE_RECORD_NUMBER = 0x01;
+	public static final int IPTC_ENVELOPE_1_RECORD_NUMBER = 0x01;
 	public static final int IPTC_APPLICATION_2_RECORD_NUMBER = 0x02;
+
+	public static final int IPTC_ENVELOPE_RECORD_VERSION = 0;
+	public static final int IPTC_ENVELOPE_CODED_CHARACTER_SET = 90;
 
 	public static final IPTCType IPTC_TYPE_RECORD_VERSION = new IPTCType(0,
 			"Record Version");

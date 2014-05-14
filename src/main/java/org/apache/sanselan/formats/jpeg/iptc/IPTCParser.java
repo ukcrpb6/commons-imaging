@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -34,12 +35,21 @@ import org.apache.sanselan.common.BinaryOutputStream;
 import org.apache.sanselan.util.Debug;
 import org.apache.sanselan.util.ParamMap;
 
-public class IPTCParser extends BinaryFileParser implements IPTCConstants
-{
-	private static final int APP13_BYTE_ORDER = BYTE_ORDER_NETWORK;
+public class IPTCParser extends BinaryFileParser implements IPTCConstants {
+	private static final String ENCODING_UTF_8 = "UTF-8";
 
-	public IPTCParser()
-	{
+    private static final int APP13_BYTE_ORDER = BYTE_ORDER_NETWORK;
+
+    private static final Map ENCODING_MAP = new HashMap();
+
+    private static final char ESC = 0x1b;
+
+    private static final String ENCODING_LATIN_1 = "windows-1252"; //$NON-NLS-1$
+    static {
+        ENCODING_MAP.put(ESC + "%G", ENCODING_UTF_8);
+    }
+
+    public IPTCParser() {
 		setByteOrder(BYTE_ORDER_NETWORK);
 	}
 
@@ -136,8 +146,9 @@ public class IPTCParser extends BinaryFileParser implements IPTCConstants
 
 		int index = 0;
 		// Integer recordVersion = null;
-		while (index + 1 < bytes.length)
-		{
+
+        String encoding = "windows-1252";
+        while (index + 1 < bytes.length) {
 			int tagMarker = 0xff & bytes[index++];
 			if (verbose)
 				Debug.debug("tagMarker", tagMarker + " (0x"
@@ -156,8 +167,8 @@ public class IPTCParser extends BinaryFileParser implements IPTCConstants
 				Debug.debug("recordNumber", recordNumber + " (0x"
 						+ Integer.toHexString(recordNumber) + ")");
 
-			if (recordNumber != IPTC_APPLICATION_2_RECORD_NUMBER)
-				continue;
+            // if (recordNumber != IPTC_APPLICATION_2_RECORD_NUMBER)
+            // continue;
 
 			// int recordPrefix = convertByteArrayToShort("recordPrefix", index,
 			// bytes);
@@ -234,7 +245,15 @@ public class IPTCParser extends BinaryFileParser implements IPTCConstants
 			// continue;
 			// }
 
-			String value = new String(recordData, "ISO-8859-1");
+            if (recordNumber == IPTC_ENVELOPE_1_RECORD_NUMBER
+                    && recordType == IPTC_ENVELOPE_CODED_CHARACTER_SET) {
+                encoding = (String) ENCODING_MAP.get(new String(recordData));
+            }
+
+            if (recordNumber != IPTC_APPLICATION_2_RECORD_NUMBER)
+                continue;
+
+            String value = new String(recordData, encoding);
 
 			IPTCType iptcType = IPTCTypeLookup.getIptcType(recordType);
 
@@ -425,10 +444,10 @@ public class IPTCParser extends BinaryFileParser implements IPTCConstants
 							+ element.iptcType.type);
 				bos.write(element.iptcType.type);
 
-				byte recordData[] = element.value.getBytes("ISO-8859-1");
-				if (!new String(recordData, "ISO-8859-1").equals(element.value))
+                byte recordData[] = element.value.getBytes(ENCODING_LATIN_1);
+                if (!new String(recordData, ENCODING_LATIN_1).equals(element.value))
 					throw new ImageWriteException(
-							"Invalid record value, not ISO-8859-1");
+                            "Invalid record value, not " + ENCODING_LATIN_1);
 
 				bos.write2Bytes(recordData.length);
 				bos.write(recordData);
